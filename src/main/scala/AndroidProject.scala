@@ -126,7 +126,26 @@ abstract class AndroidProject(info: ProjectInfo) extends DefaultProject(info) {
   } catch {
     case e: NoSuchMethodException => FileUtilities.scalaLibraryJar
   }
-  lazy val proguard = proguardAction
+
+  lazy val quickshake = quickshakeAction
+  def quickshakeAction = quickshakeTask dependsOn(compile) describedAs("Shrink class files quickly.")
+  def quickshakeTask = task {
+    import net.negatory.quickshake._
+
+    val options = new Options {
+      val inputs: List[File] = mainCompilePath.asFile :: scalaLibraryJar :: proguardInJars.getPaths.toList.map(_.asFile)
+      val outdir = classesMinJarPath.asFile
+      val keepNamespaces = List(manifestPackage)
+      val logLevel = LogLevel.Info
+    }
+
+    def loggerFactory(logLevel: LogLevel.LogLevel) = new ConsoleLogger(logLevel)
+
+    QuickShake.runShake(options, loggerFactory)
+    None
+  }
+
+  /*lazy val proguard = proguardAction
   def proguardAction = proguardTask dependsOn(compile) describedAs("Optimize class files.")
   def proguardTask = task { 
     val args = "-injars" ::  mainCompilePath.absolutePath+File.pathSeparator+
@@ -149,10 +168,10 @@ abstract class AndroidProject(info: ProjectInfo) extends DefaultProject(info) {
     new ConfigurationParser(args.toArray[String], info.projectPath.asFile).parse(config)    
     new ProGuard(config).execute
     None
-  }
+  }*/
 
   lazy val dx = dxAction
-  def dxAction = dxTask dependsOn(proguard) describedAs("Convert class files to dex files")
+  def dxAction = dxTask dependsOn(quickshake) describedAs("Convert class files to dex files")
   def dxTask = fileTask(classesDexPath from classesMinJarPath) { 
      execTask {<x> {dxPath.absolutePath} {dxMemoryParameter} 
         --dex --output={classesDexPath.absolutePath} {classesMinJarPath.absolutePath}
