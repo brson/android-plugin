@@ -133,8 +133,8 @@ abstract class AndroidProject(info: ProjectInfo) extends DefaultProject(info) {
     import net.negatory.quickshake._
 
     val options = new Options {
-      val inputs: List[File] = mainCompilePath.asFile :: scalaLibraryJar :: proguardInJars.getPaths.toList.map(_.asFile)
-      val outdir = classesMinJarPath.asFile
+      val inputs = mainCompilePath.asFile :: scalaLibraryJar :: proguardInJars.getPaths.toList.map(_.asFile)
+      val output = classesMinJarPath.asFile
       val keepNamespaces = List(manifestPackage)
       val logLevel = LogLevel.Info
     }
